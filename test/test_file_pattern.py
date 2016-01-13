@@ -88,8 +88,29 @@ class TestPattern(unittest.TestCase):
         )
 
 
+class TestFindNumericPattern(unittest.TestCase):
+
+    def setUp(self):
+        self.data = [
+            (["z00t00.tif", "z00t01.tif",
+              "z01t00.tif", "z01t01.tif",
+              "z02t00.tif", "z02t01.tif"],
+             "z<00-02>t<00,01>.tif"),
+            (["1829", "1830", "1831",
+              "1929", "1930", "1931",
+              "2029", "2030", "2031"],
+             "<1829-1831,1929-1931,2029-2031>"),
+            (["102", "101", "100", "99", "13", "11", "09"],
+             "<09-13:2,99-102>")
+        ]
+
+    def runTest(self):
+        for fnames, exp_p in self.data:
+            self.assertEqual(fp.find_numeric_pattern(fnames), exp_p)
+
+
 def load_tests(loader, tests, pattern):
-    test_cases = (TestRange, TestBlock, TestPattern)
+    test_cases = (TestRange, TestBlock, TestPattern, TestFindNumericPattern)
     suite = unittest.TestSuite()
     for tc in test_cases:
         suite.addTests(loader.loadTestsFromTestCase(tc))

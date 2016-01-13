@@ -66,6 +66,62 @@ def expand_block(block):
     return sum((expand_range(_.strip()) for _ in block.split(",")), [])
 
 
+# FIXME: this can be optimized, e.g., pre-calc whole step list
+def build_numeric_block(values):
+    if not values:
+        return ""
+    N = len(values)
+    values = sorted(values, key=int)
+    if N < 2:
+        return values[0]
+    if N < 3:
+        return "<%s>" % ",".join(values)
+    i = N - 2
+    intervals = []
+    while i >= 0:
+        rstep = int(values[i+1]) - int(values[i])
+        if i == 0:
+            lstep = rstep + 1  # set to something != rstep
+        else:
+            lstep = int(values[i]) - int(values[i-1])
+        if lstep != rstep:
+            intervals.append("%s-%s%s" % (
+                values[i], values[-1], ":%d" % rstep if rstep > 1 else ""
+            ))
+            del values[i:]
+            i -= 1
+        i -= 1
+    return "<%s>" % ",".join(reversed(intervals))
+
+
+def find_numeric_pattern(names, base=None):
+    if not names:
+        return ""
+    if base is None:
+        base = names[0]
+    if len(names) < 2:
+        return base
+    matches = list(re.finditer(r"\d+", base))
+    if not matches:
+        return base
+    pattern = [base[:matches[0].start()]]
+    for i, m in enumerate(matches):
+        regex = re.compile(r"^%s(\d+)%s$" % (base[:m.start()], base[m.end():]))
+        values = set()
+        for n in names:
+            try:
+                values.add(regex.match(n).groups()[0])
+            except (AttributeError, IndexError):
+                pass
+        pattern.append(build_numeric_block(values))
+        try:
+            next_start = matches[i+1].start()
+        except IndexError:
+            next_start = len(base)
+        pattern.append(base[m.end():next_start])
+    return "".join(pattern)
+
+
 class FilePattern(object):
 
     def __init__(self, pattern):
